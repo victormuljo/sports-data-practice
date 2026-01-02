@@ -28,16 +28,29 @@ def calculate_metrics(df: pd.DataFrame) -> pd.DataFrame:
         avg_points=("points", "mean"),
         avg_assists=("assists", "mean"),
         avg_rebounds=("rebounds", "mean"),
-        games_played=("game_date", "nunique")
-    ).reset_index()
-    return metrics_df
+        games_played=("game_date", "nunique"),
+        total_points=("points", "sum")
+    )
+
+    # add a ppg (points per game) column
+    metrics_df['points_per_game'] = metrics_df['total_points'] / metrics_df['games_played'].replace(0, pd.NA) # protect against division by 0 although shouldnt really happen
+
+    return metrics_df.reset_index()
+
+def return_top_scorers(df: pd.DataFrame, top_n: int) -> pd.DataFrame:
+    if top_n <= 0:
+        return df.head(0)  # return empty DataFrame for non-positive top_n
+    top_scorers_df = df.sort_values(by='points_per_game', ascending=False).head(top_n)
+    return top_scorers_df
 
 if __name__ == "__main__":
     file_path = "datasets/player_stats.csv"
     raw_data = load_data(file_path) # get the raw data
-    clean_data_df = clean_data(raw_data) # we want to clean up the raw data first
-    player_summary = calculate_metrics(clean_data_df) # pass the cleaned data into metrics calculation
+    df_clean = clean_data(raw_data) # we want to clean up the raw data first
+    metrics_df = calculate_metrics(df_clean) # pass the cleaned data into metrics calculation
+    top_3_summary = return_top_scorers(metrics_df, 3) # get top 3 scorers
 
     print(raw_data)
-    print(clean_data_df)
-    print(player_summary)   
+    print(df_clean)
+    print(metrics_df)   
+    print(top_3_summary)
