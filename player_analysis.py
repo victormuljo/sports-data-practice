@@ -24,7 +24,7 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
 # turn raw stats into aggregated metrics
 def calculate_metrics(df: pd.DataFrame) -> pd.DataFrame:
     # get average points, assists, rebounds and games played per player
-    metrics_df = df.groupby("player").agg(
+    metrics_df = df.groupby("player", as_index=False).agg(
         avg_points=("points", "mean"),
         avg_assists=("assists", "mean"),
         avg_rebounds=("rebounds", "mean"),
@@ -35,13 +35,21 @@ def calculate_metrics(df: pd.DataFrame) -> pd.DataFrame:
     # add a ppg (points per game) column
     metrics_df['points_per_game'] = metrics_df['total_points'] / metrics_df['games_played'].replace(0, pd.NA) # protect against division by 0 although shouldnt really happen
 
-    return metrics_df.reset_index()
+    return metrics_df
 
 def return_top_scorers(df: pd.DataFrame, top_n: int) -> pd.DataFrame:
     if top_n <= 0:
         return df.head(0)  # return empty DataFrame for non-positive top_n
     top_scorers_df = df.sort_values(by='points_per_game', ascending=False).head(top_n)
     return top_scorers_df
+
+def validate_inputs(df: pd.DataFrame):
+    required_columns = {'player', 'points', 'assists', 'rebounds', 'game_date'}
+    if not required_columns.issubset(df.columns):
+        missing = required_columns - set(df.columns)
+        raise ValueError(f"Input DataFrame is missing required columns: {missing}")
+    
+    
 
 if __name__ == "__main__":
     file_path = "datasets/player_stats.csv"
@@ -50,7 +58,7 @@ if __name__ == "__main__":
     metrics_df = calculate_metrics(df_clean) # pass the cleaned data into metrics calculation
     top_3_summary = return_top_scorers(metrics_df, 3) # get top 3 scorers
 
-    print(raw_data)
-    print(df_clean)
+    # print(raw_data)
+    # print(df_clean)
     print(metrics_df)   
     print(top_3_summary)
