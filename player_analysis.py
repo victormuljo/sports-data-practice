@@ -1,8 +1,3 @@
-# Create the functions:
-# load_data() 
-# clean_data(df) 
-# calculate_metrics(df)
-
 import pandas as pd
 
 # load player stats from csv file
@@ -10,12 +5,13 @@ def load_data(file_path: str) -> pd.DataFrame:
     df = pd.read_csv(file_path)
     return df
 
+# helper function to normalize the series
 def normalize_str_series(series: pd.Series) -> pd.Series:
     return series.astype('string').str.strip().replace('', pd.NA)
 
 def validate_input(df: pd.DataFrame):
-
     warnings = []
+
     # required columns check
     required_columns = {'player', 'points', 'assists', 'rebounds', 'game_date', 'team'}
     if not required_columns.issubset(df.columns):
@@ -54,7 +50,6 @@ def validate_input(df: pd.DataFrame):
     # FUTURE: team should be string type, but not enforced yet
 
     # count missing values in player, points, and game_date
-    # which are allowed? which should fail the run?
     # - player should not have missing values
     # - points can be missing (we handle that in cleaning)
     # - game_date should not have missing values
@@ -62,10 +57,12 @@ def validate_input(df: pd.DataFrame):
     if player_series.isna().any():
         player_null_count = player_series.isna().sum()
         raise ValueError(f"Column 'player' contains {player_null_count} missing values.")
+    
     points_series = normalize_str_series(df['points'])
     if points_series.isna().any():
         points_null_count = points_series.isna().sum()
         warnings.append(f"Warning: column 'points' contains {points_null_count} missing values.") # allowed, will be handled in cleaning
+        
     if game_date_series.isna().any():
         game_date_null_count = game_date_series.isna().sum()
         raise ValueError(f"Column 'game_date' contains {game_date_null_count} missing values.")
