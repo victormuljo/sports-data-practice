@@ -10,64 +10,83 @@ def load_data(file_path: str) -> pd.DataFrame:
     df = pd.read_csv(file_path)
     return df
 
-def validate_inputs(df: pd.DataFrame):
+def normalize_str_series(series: pd.Series) -> pd.Series:
+    return series.astype('string').str.strip().replace('', pd.NA)
 
+def validate_input(df: pd.DataFrame):
+
+    warnings = []
     # required columns check
-    required_columns = {'player', 'points', 'assists', 'rebounds', 'game_date'}
+    required_columns = {'player', 'points', 'assists', 'rebounds', 'game_date', 'team'}
     if not required_columns.issubset(df.columns):
         missing = required_columns - set(df.columns)
         raise ValueError(f"Input DataFrame is missing required columns: {missing}")
     
     # check datatypes
-    # points, assists, and rebounds should be numeric (should brush over missing values here)
+    # Numeric columns (points, assists, rebounds): allow nulls, but non-null values must be convertible to numbers.
     for col in ['points', 'assists', 'rebounds']:
-        if not pd.api.types.is_numeric_dtype(df[col]):
-            raise TypeError(f"Column '{col}' must be numeric.")
+        series = df[col]
+        series_trimmed = normalize_str_series(series) # trim whitespace and treat empty strings as NA
+        non_missing_mask = series_trimmed.notna() # mask of non-missing values
+        coerced = pd.to_numeric(series_trimmed[non_missing_mask], errors='coerce') # temp convert to numeric
+        bad_mask = coerced.isna() # check for the bad values that couldnt be converted
+        if bad_mask.any():
+            bad_values = series_trimmed[non_missing_mask][bad_mask] # get all the bad values
+            examples = bad_values.unique()[:5] # get a small snippet of bad values
+            raise TypeError(f"Column '{col}' contains non-numeric values: {examples}")
 
     # game_date should be of date time format so it can be converted into datetime later
     # 1) it must exist
     # 2) it must be parseable as a datetime type
     # 3) reasonable date range
-    if not pd.api.types.is_datetime64_any_dtype(df['game_date']):
-        # Parse to check convertibility without mutating the original column.
-        # Important: ignore missing values here; they'll be validated separately below.
-        non_missing_mask = df['game_date'].notna()
-        parsed = pd.to_datetime(df.loc[non_missing_mask, 'game_date'], format='mixed', errors='coerce')
-        if parsed.isna().any():
-            raise TypeError("Column 'game_date' contains unparseable non-null date values.")
-        if parsed.dt.year.max() > pd.Timestamp.now().year:
-            raise ValueError("Column 'game_date' contains dates in the future.")
-    
+    game_date_series = normalize_str_series(df['game_date']) # trim whitespace and treat empty strings as NA
+    # Parse to check convertibility without mutating the original column.
+    # Important: ignore missing values here; they'll be validated separately below.
+    non_missing_mask = game_date_series.notna()
+    parsed = pd.to_datetime(game_date_series[non_missing_mask], format='%Y-%m-%d', errors='coerce')
+    if non_missing_mask.sum() == 0:
+        raise ValueError("Column 'game_date' has no valid dates.")
+    if parsed.isna().any():
+        raise TypeError("Column 'game_date' contains unparseable non-null date values.")
+    if (parsed < pd.Timestamp("1900-01-01")).any() or (parsed > pd.Timestamp.now()).any():
+        raise ValueError("Column 'game_date' contains dates outside the reasonable range.")
+
+    # FUTURE: team should be string type, but not enforced yet
 
     # count missing values in player, points, and game_date
     # which are allowed? which should fail the run?
     # - player should not have missing values
     # - points can be missing (we handle that in cleaning)
     # - game_date should not have missing values
-    if df['player'].isnull().any():
-        player_null_count = df['player'].isnull().sum()
+    player_series = normalize_str_series(df['player'])
+    if player_series.isna().any():
+        player_null_count = player_series.isna().sum()
         raise ValueError(f"Column 'player' contains {player_null_count} missing values.")
-    if df['points'].isnull().any():
-        points_null_count = df['points'].isnull().sum()
-        print(f"Warning: column 'points' contains {points_null_count} missing values.")
-        pass # allowed, will be handled in cleaning
-    if df['game_date'].isnull().any():
-        game_date_null_count = df['game_date'].isnull().sum()
+    points_series = normalize_str_series(df['points'])
+    if points_series.isna().any():
+        points_null_count = points_series.isna().sum()
+        warnings.append(f"Warning: column 'points' contains {points_null_count} missing values.") # allowed, will be handled in cleaning
+    if game_date_series.isna().any():
+        game_date_null_count = game_date_series.isna().sum()
         raise ValueError(f"Column 'game_date' contains {game_date_null_count} missing values.")
     
     # detect duplicate game records using playuer and game_date
-    duplicates = df.duplicated(subset=['player', 'game_date'])
+    # this will be adjusted as project grows, this duplicate rule wont apply as new teams or game id will be applied as columns
+    duplicates = df.duplicated(subset=['player', 'game_date', 'team'])
+    duplicates_count = duplicates.sum()
     if duplicates.any():
-        duplicates_count = duplicates.sum()
-        raise ValueError(f"Input DataFrame contains {duplicates_count} duplicate game records for the same player on the same date.")
+        raise ValueError(f"Input DataFrame contains {duplicates_count} duplicate game records for the same player on the same date and same team")
         # maybe it can raise a warning instead of error?
 
-    print("Input DataFrame validation passed.")
-    print("Number of records:", len(df))
-    print("Number of unique players:", df['player'].nunique())
-    print()
-
-    return True
+    return {
+        'records': len(df), 
+        'unique_players': df['player'].nunique(), 
+        'player_null_count': player_series.isna().sum(), 
+        'points_null_count': points_series.isna().sum(), 
+        'game_date_null_count': game_date_series.isna().sum(),
+        'duplicates_count': duplicates_count,
+        'warnings': warnings
+        }
 
 # clean and normalize player stats data
 def clean_data(df: pd.DataFrame) -> pd.DataFrame:
@@ -76,7 +95,7 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     clean_df["points"] = clean_df["points"].fillna(0) # fill missing points with 0
     clean_df["assists"] = clean_df["assists"].fillna(0) # fill missing assists with 0
     clean_df["rebounds"] = clean_df["rebounds"].fillna(0) # fill missing rebounds with 0
-    clean_df["game_date"] = pd.to_datetime(clean_df["game_date"], format='mixed') # convert game_date to datetime
+    clean_df["game_date"] = pd.to_datetime(clean_df["game_date"]) # convert game_date to datetime
 
     return clean_df
 
@@ -107,7 +126,7 @@ if __name__ == "__main__":
     file_path = "datasets/player_stats.csv"
     
     raw_data = load_data(file_path) # get the raw data
-    validate_inputs(raw_data) # validate the raw data
+    validation_report = validate_input(raw_data) # validate the raw data
     df_clean = clean_data(raw_data) # we want to clean up the raw data first
     
     metrics_df = calculate_metrics(df_clean) # pass the cleaned data into metrics calculation
@@ -116,5 +135,6 @@ if __name__ == "__main__":
     # validate_inputs(df_clean)
     # print(raw_data)
     # print(df_clean)
+    print(validation_report)
     print(metrics_df)   
     print(top_3_summary)
