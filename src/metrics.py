@@ -13,7 +13,8 @@ def calculate_metrics(df: pd.DataFrame) -> pd.DataFrame:
 
     # add a ppg (points per game) column
     metrics_df['points_per_game'] = metrics_df['total_points'] / metrics_df['games_played'].replace(0, pd.NA) # protect against division by 0 although shouldnt really happen
-
+    metrics_df.sort_values(by='points_per_game', ascending=False, inplace=True)
+    
     return metrics_df
 
 def return_top_scorers(df: pd.DataFrame, top_n: int) -> pd.DataFrame:
