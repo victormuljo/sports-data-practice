@@ -1,5 +1,5 @@
 import pandas as pd
-from player_analysis import validate_input
+from src.validation import validate_input
 import json
 
 # valid dataframe

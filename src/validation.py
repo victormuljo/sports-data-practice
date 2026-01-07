@@ -1,10 +1,5 @@
 import pandas as pd
 
-# load player stats from csv file
-def load_data(file_path: str) -> pd.DataFrame:
-    df = pd.read_csv(file_path)
-    return df
-
 # helper function to normalize the series
 def normalize_str_series(series: pd.Series) -> pd.Series:
     return series.astype('string').str.strip().replace('', pd.NA)
@@ -84,54 +79,3 @@ def validate_input(df: pd.DataFrame):
         'duplicates_count': duplicates_count,
         'warnings': warnings
         }
-
-# clean and normalize player stats data
-def clean_data(df: pd.DataFrame) -> pd.DataFrame:
-    clean_df = df.copy()
-    clean_df.columns = [ col.strip().lower() for col in clean_df.columns ] # normalize the columns
-    clean_df["points"] = clean_df["points"].fillna(0) # fill missing points with 0
-    clean_df["assists"] = clean_df["assists"].fillna(0) # fill missing assists with 0
-    clean_df["rebounds"] = clean_df["rebounds"].fillna(0) # fill missing rebounds with 0
-    clean_df["game_date"] = pd.to_datetime(clean_df["game_date"]) # convert game_date to datetime
-
-    return clean_df
-
-# turn raw stats into aggregated metrics
-def calculate_metrics(df: pd.DataFrame) -> pd.DataFrame:
-    # get average points, assists, rebounds and games played per player
-    metrics_df = df.groupby("player", as_index=False).agg(
-        avg_points=("points", "mean"),
-        avg_assists=("assists", "mean"),
-        avg_rebounds=("rebounds", "mean"),
-        games_played=("game_date", "nunique"),
-        total_points=("points", "sum")
-    )
-
-    # add a ppg (points per game) column
-    metrics_df['points_per_game'] = metrics_df['total_points'] / metrics_df['games_played'].replace(0, pd.NA) # protect against division by 0 although shouldnt really happen
-
-    return metrics_df
-
-def return_top_scorers(df: pd.DataFrame, top_n: int) -> pd.DataFrame:
-    if top_n <= 0:
-        return df.head(0)  # return empty DataFrame for non-positive top_n
-    top_scorers_df = df.sort_values(by='points_per_game', ascending=False).head(top_n)
-    return top_scorers_df
-
-
-if __name__ == "__main__":
-    file_path = "datasets/player_stats.csv"
-    
-    raw_data = load_data(file_path) # get the raw data
-    validation_report = validate_input(raw_data) # validate the raw data
-    df_clean = clean_data(raw_data) # we want to clean up the raw data first
-    
-    metrics_df = calculate_metrics(df_clean) # pass the cleaned data into metrics calculation
-    top_3_summary = return_top_scorers(metrics_df, 3) # get top 3 scorers
-
-    # validate_inputs(df_clean)
-    # print(raw_data)
-    # print(df_clean)
-    print(validation_report)
-    print(metrics_df)   
-    print(top_3_summary)
