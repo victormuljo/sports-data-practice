@@ -12,45 +12,30 @@ In terminal, run python3 -m tests.test_validation
 
 ### Folder structure
 
+```
+.
 sports-data-practice/
-
 ├─ __pycache__/
-
 ├─ .git/
-
 ├─ datasets/
-
 │  └─ player_stats.csv
-
 ├─ src/
-
 │  ├─ __pycache__/
-
 │  ├─ __init__.py
-
 │  ├─ data.py
-
 │  ├─ metrics.py
-
 │  └─ validation.py
-
 ├─ tests/
-
 │  ├─ __pycache__/
-
 │  ├─ __init__.py
-
 │  ├─ test_player_analysis.ipynb
-
 │  └─ test_validation.py
-
 ├─ .gitignore
-
 ├─ main.py
-
 ├─ README.md
-
 └─ requirements.txt
+
+```
 
 
 The folders of this project consist of src, datasets, and tests
