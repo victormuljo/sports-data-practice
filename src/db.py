@@ -13,5 +13,5 @@ def write_df_to_table(df: pd.DataFrame, conn: sqlite3.Connection, table_name: st
     df.to_sql(table_name, conn, if_exists='replace', index=False)
 
 # 3. Function to run read-only queries and return results as DataFrames
-def read_sql_df(query: str, conn: sqlite3.Connection) -> pd.DataFrame:
-    return pd.read_sql_query(query, conn)
+def read_sql_df(query: str, conn: sqlite3.Connection, params=None) -> pd.DataFrame:
+    return pd.read_sql_query(query, conn, params=params)
