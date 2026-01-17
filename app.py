@@ -14,13 +14,15 @@ SORT_COLUMNS = {
 
 DB_PATH = 'databases/sports.db'
 
+# Catch database error at start for streamlit
 if not Path(DB_PATH).exists():
     st.error("Database not found. Run `python3 main.py` to generate it.")
     st.stop()
 
+# --- Data caching to prevent repetivie data loading, store in the cache so its only ran once if nothing changes--- #
 @st.cache_data
 def get_last_updated(db_path: str) -> str:
-    with get_db_connection(db_path) as conn:
+    with get_db_connection(db_path) as conn: # guarantee data is closed properly
         df = read_sql_df("SELECT MAX(game_date) as last_updated FROM player_games;", conn)
     return df['last_updated'].iloc[0]
 
@@ -68,8 +70,6 @@ st.markdown("See basic player analysis metrics stored in the database.")
 if st.button("Refresh data"):
     st.cache_data.clear()
     st.rerun()
-
-
 
 try:
     # Show last updated

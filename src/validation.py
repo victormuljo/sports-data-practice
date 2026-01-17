@@ -1,4 +1,10 @@
 import pandas as pd
+from pathlib import Path
+
+# function to check path
+def validate_path(path: str):
+    if not Path(path).exists():
+        raise FileNotFoundError(f"File path {path} not found.")
 
 # helper function to normalize the series
 def normalize_str_series(series: pd.Series) -> pd.Series:

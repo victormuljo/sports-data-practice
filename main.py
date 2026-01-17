@@ -1,11 +1,15 @@
 import json
+import os
 from src.data import load_data, clean_data
 from src.validation import validate_input
 from src.metrics import calculate_metrics, return_top_scorers
 from src.db import get_db_connection, write_df_to_table, read_sql_df
+from src.ingest import ingest_csv
 
 if __name__ == "__main__":
-    file_path = "datasets/player_stats.csv"
+    file_path = [file for file in os.listdir()]
+
+    df_clean, validation_report = ingest_csv(file_path)
     
     raw_data = load_data(file_path) # get the raw data
     validation_report = validate_input(raw_data) # validate the raw data

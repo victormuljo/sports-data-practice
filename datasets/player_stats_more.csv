@@ -1,0 +1,21 @@
+player,team,points,assists,rebounds,game_date
+Jayson Tatum,BOS,32,6,9,2024-03-01
+Jaylen Brown,BOS,28,4,7,2024-03-01
+Jayson Tatum,BOS,26,5,8,2024-03-03
+Jaylen Brown,BOS,24,3,6,2024-03-03
+Kevin Durant,PHX,34,7,6,2024-03-02
+Devin Booker,PHX,29,8,5,2024-03-02
+Kevin Durant,PHX,38,5,7,2024-03-04
+Devin Booker,PHX,,9,4,2024-03-04
+Giannis Antetokounmpo,MIL,37,6,12,2024-03-01
+Damian Lillard,MIL,25,10,4,2024-03-01
+Giannis Antetokounmpo,MIL,31,5,11,2024-03-03
+Damian Lillard,MIL,33,7,3,2024-03-03
+Nikola Jokic,DEN,21,12,14,2024-03-02
+Jamal Murray,DEN,27,6,4,2024-03-02
+Nikola Jokic,DEN,,11,13,2024-03-04
+Jamal Murray,DEN,24,5,3,2024-03-04
+Jimmy Butler,MIA,22,6,5,2024-03-01
+Bam Adebayo,MIA,19,4,10,2024-03-01
+Jimmy Butler,MIA,27,7,6,2024-03-03
+Bam Adebayo,MIA,21,,11,2024-03-03
