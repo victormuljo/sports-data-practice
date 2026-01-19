@@ -1,12 +1,13 @@
 # this will load csvs, validate the data, clean, and write to SQLite
 import pandas as pd
-from pathlib import Path
 from src.data import clean_data
 from src.validation import validate_input, validate_path
-from src.db import get_db_connection, write_df_to_table
+from src.db import get_db_connection, write_df_to_table, init_db
+
+KEY_COLS = ["player", "team", "game_date"]
 
 # this should ingest multiple csv files before writing to sqlite
-def ingest_csv(db_path: str, file_paths: list[str], table_name: str = "player_games"):
+def ingest_csv(db_path: str, file_paths: list[str], table_name: str = "player_games", mode: str = "upsert"):
     # check file paths
     for file in file_paths:
         validate_path(file)
@@ -22,7 +23,8 @@ def ingest_csv(db_path: str, file_paths: list[str], table_name: str = "player_ga
 
     # write to sqlite
     with get_db_connection(db_path) as conn:
-        write_df_to_table(all_df_clean, conn, table_name)
+        init_db(conn, table_name=table_name)
+        inserted = write_df_to_table(all_df_clean, conn, table_name, mode, key_cols=KEY_COLS)
 
     # return the clean df
-    return all_df_clean, validation_report
+    return all_df_clean, validation_report, inserted
