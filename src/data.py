@@ -9,9 +9,16 @@ def load_data(file_path: str) -> pd.DataFrame:
 def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     clean_df = df.copy()
     clean_df.columns = [ col.strip().lower() for col in clean_df.columns ] # normalize the columns
-    clean_df["points"] = clean_df["points"].fillna(0) # fill missing points with 0
-    clean_df["assists"] = clean_df["assists"].fillna(0) # fill missing assists with 0
-    clean_df["rebounds"] = clean_df["rebounds"].fillna(0) # fill missing rebounds with 0
-    clean_df["game_date"] = pd.to_datetime(clean_df["game_date"]).dt.strftime("%Y-%m-%d %H:%M:%S") # convert game_date to datetime
+
+    # convert numeric columns
+    for col in ["points", "assists", "rebounds"]:
+        clean_df[col] = pd.to_numeric(clean_df[col], errors='coerce').fillna(0)
+
+    # parse game date, check, then format
+    parsed_date_time = pd.to_datetime(clean_df["game_date"], errors='coerce') # convert game_date to datetime
+    if parsed_date_time.isna().any():
+        bad_examples = clean_df.loc[parsed_date_time.isna(), "game_date"].astype("string").unique()[:5]
+        raise ValueError(f"Dataframe has unparseable game_date values during date time key normalization. Examples: {bad_examples}")
+    clean_df['game_date'] = parsed_date_time.dt.strftime("%Y-%m-%d %H:%M:%S")
 
     return clean_df

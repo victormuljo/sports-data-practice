@@ -40,9 +40,10 @@ def validate_input(df: pd.DataFrame):
     # Parse to check convertibility without mutating the original column.
     # Important: ignore missing values here; they'll be validated separately below.
     non_missing_mask = game_date_series.notna()
-    parsed = pd.to_datetime(game_date_series[non_missing_mask], format='%Y-%m-%d', errors='coerce')
     if non_missing_mask.sum() == 0:
         raise ValueError("Column 'game_date' has no valid dates.")
+    
+    parsed = pd.to_datetime(game_date_series[non_missing_mask], errors='coerce')
     if parsed.isna().any():
         raise TypeError("Column 'game_date' contains unparseable non-null date values.")
     if (parsed < pd.Timestamp("1900-01-01")).any() or (parsed > pd.Timestamp.now()).any():

@@ -33,17 +33,23 @@ def write_df_to_table(df: pd.DataFrame, conn: sqlite3.Connection, table_name: st
         missing = [c for c in key_cols if c not in df.columns]
         if missing:
             raise ValueError(f"df is missing key_cols required for upsert: {missing}")
-        # ensure table exists
-        if not table_exists(conn, table_name):
-            df.to_sql(table_name, conn, if_exists='replace', index=False)
-            return len(df)
-        
-        # fetch existing keys from DB
-        query = f"SELECT {', '.join(key_cols)} FROM {table_name};"
-        existing_keys = pd.read_sql_query(query, conn)
 
         # dedupe within incoming batch
         df_incoming = df.drop_duplicates(subset=key_cols).copy()
+
+        # remove the id column
+        cols = [c for c in df_incoming.columns if c != "id"]
+        df_incoming = df_incoming[cols]
+
+        # insert or ignore statement
+        placeholders = ", ".join(["?"] * len(cols))
+        col_list = ", ".join(cols)
+        sql = f"INSERT OR IGNORE INTO {table_name} ({col_list}) VALUES ({placeholders})" # setting up the parameters
+
+        before = conn.total_changes
+        conn.executemany(sql, df_incoming.itertuples(index=False, name=None))
+        inserted = conn.total_changes - before
+        return inserted
 
         # Make sure key column dtypes match between incoming df and existing_keys
         for col in key_cols:
@@ -61,11 +67,6 @@ def write_df_to_table(df: pd.DataFrame, conn: sqlite3.Connection, table_name: st
                     # normalize strings for keys like player/team
                     df_incoming[col] = df_incoming[col].astype("string").str.strip()
                     existing_keys[col] = existing_keys[col].astype("string").str.strip()
-
-        # keep all incoming rows and filter for only new rows
-        merged = df_incoming.merge(existing_keys, on=key_cols, how='left', indicator=True)
-        df_new = merged[merged["_merge"] == "left_only"].drop(columns=['_merge'])
-
 
         # append only those rows
         if df_new.empty:
