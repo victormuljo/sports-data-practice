@@ -67,7 +67,8 @@ def get_player_aggregate_metrics(db_path: str, player: str) -> pd.DataFrame:
 
 st.title("Sports Data Metrics Viewer")
 st.markdown("See basic player analysis metrics stored in the database.")
-if st.button("Refresh data"):
+st.caption("To refresh the database, run: `python3 main.py` in the terminal.")
+if st.button("Refresh UI (clear cache)"):
     st.cache_data.clear()
     st.rerun()
 

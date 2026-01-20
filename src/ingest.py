@@ -9,6 +9,8 @@ KEY_COLS = ["player", "team", "game_date"]
 # this should ingest multiple csv files before writing to sqlite
 def ingest_csv(db_path: str, file_paths: list[str], table_name: str = "player_games", mode: str = "upsert"):
     # check file paths
+    if not file_paths:
+        raise ValueError("No CSV files provided to ingest_csv.")
     for file in file_paths:
         validate_path(file)
 
@@ -26,5 +28,14 @@ def ingest_csv(db_path: str, file_paths: list[str], table_name: str = "player_ga
         init_db(conn, table_name=table_name)
         inserted = write_df_to_table(all_df_clean, conn, table_name, mode, key_cols=KEY_COLS)
 
+    report = {
+        "files": len(file_paths),
+        "rows_raw": len(df_raw),
+        "rows_clean": len(all_df_clean),
+        "inserted": inserted,
+        "mode": mode,
+        "table": table_name
+    }
+
     # return the clean df
-    return all_df_clean, validation_report, inserted
+    return all_df_clean, validation_report, inserted, report
